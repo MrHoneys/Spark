@@ -2,7 +2,8 @@
 import os
 from googlesearch import search
 import requests
-import re
+import socket
+from termcolor import colored  # Módulo para colorir o texto no terminal
 
 # ------------------------------ ONDE SERÁ REALIZADO O SERVIÇO  ------------------------------ #
 
@@ -67,23 +68,70 @@ def consultar_whois_cnpj(cnpj):
         print(f"Ocorreu um erro ao obter informações do CNPJ: {e}")
 
 
-def consultar_whois_cpf(cpf):
+def port_scan(host, port):
+    # Dicionário para mapear portas aos serviços correspondentes
+    services = {
+        21: "FTP",
+        23: "Telnet",
+        25: "SMTP",
+        80: "HTTP",
+        443: "HTTPS",
+        139: "NetBIOS",
+        445: "SMB",
+        3389: "RDP",
+        5900: "VNC",
+        5901: "VNC alternativo",
+        5902: "VNC alternativo",
+        22: "SSH",
+        8080: "HTTP alternativo",
+        1433: "Microsoft SQL Server",
+        1723: "PPTP",
+        3306: "MySQL",
+        5432: "PostgreSQL",
+        6667: "IRC",
+        110: "POP3",
+        143: "IMAP",
+        53: "DNS",
+        4433: "HTTPS alternativo"
+    }
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(1)
+
     try:
-        response = requests.get(f'https://api.cpfcnpj.com.br/5ae973d7a997af13f0aaf2bf60e65803/9/{cpf}')
+        result = sock.connect_ex((host, port))
+        service_name = services.get(port, "Desconhecido")
         
-        if response.status_code == 200:
-            data = response.json()
-            print("\033[1;34mInformações sobre o CPF:\033[0m")
-            print("\033[1;37mCPF:\033[0m", f"\033[1;31m{data['cpf']}\033[0m")
-            print("\033[1;37mNome:\033[0m", f"\033[1;31m{data['nome']}\033[0m")
-            print("\033[1;37mData de Nascimento:\033[0m", f"\033[1;31m{data['nascimento']}\033[0m")
-            print("\033[1;37mNome da Mãe:\033[0m", f"\033[1;31m{data['mae']}\033[0m")
-            print("\033[1;37mGênero:\033[0m", f"\033[1;31m{data['genero']}\033[0m")
-            print("\033[1;37mSituação:\033[0m", f"\033[1;31m{data['situacao']} - {data['situacaoMotivo']}\033[0m")
+        if result == 0:
+            status = colored("ABERTA", "green")
         else:
-            print("\033[1;31mErro ao obter informações do CPF.\033[0m")
+            status = colored("FECHADA", "red")
+        sock.close()
+
+        return f"Porta {port} ({service_name}): {status}"
+    except socket.error as e:
+        return f"Erro: {e}"
+
+def portscan(ip):
+    try:
+        print(f"Iniciando varredura de portas para o IP: {ip}")
+
+        categorias = {
+            "Gerenciamento Remoto": [5900, 5901, 5902, 22, 3389, 8080],
+            "Serviços Vulneráveis": [1433, 1723, 3306, 5432, 6667],
+            "Serviços Essenciais": [25, 80, 443, 110, 143, 53, 4433]
+        }
+
+        for categoria, portas in categorias.items():
+            print(f"\n{categoria}:")
+            for porta in portas:
+                resultado = port_scan(ip, porta)
+                print(f"- {resultado}")
+    except KeyboardInterrupt:
+        print("Varredura interrompida")
     except Exception as e:
-        print(f"Ocorreu um erro ao obter informações do CPF: {e}")
+        print(f"Erro durante a varredura: {e}")
+
 
 # ------------------------------ LIMPEZA DE TELA ANTES DE COMEÇAR  ------------------------------ #
 
@@ -115,7 +163,7 @@ def main():
     print("\033[1;36m1. Google Hacking Spark\033[0m")
     print("\033[1;36m2. Whois IP\033[0m")
     print("\033[1;36m3. Whois CNPJ\033[0m")
-    print("\033[1;36m4. Whois CPF\033[0m")
+    print("\033[1;36m4. PortScan\033[0m")
     print("\033[1;36m0. Sair\033[0m")
 
     opcao = input("\033[1;36mEscolha uma opção: \033[0m")
@@ -184,8 +232,8 @@ def main():
        
                                                                                            
               """)
-        cpf = input("\033[1;32mDigite o CPF para consulta WHOIS: \033[0m")
-        consultar_whois_cpf(cpf)      
+        ip = input("\033[1;32mDigite o IP para consulta PortScan: \033[0m")
+        portscan(ip)  # Substitua "127.0.0.1" pelo IP que você deseja verificar
 
     # -- SERVIÇO DE SÁIDA  # 
     elif opcao == "0":
