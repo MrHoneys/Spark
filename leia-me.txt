@@ -1,0 +1,3 @@
+instalar as depedencias:
+
+pip install -r requirements.txt
